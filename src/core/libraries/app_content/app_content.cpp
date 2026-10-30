@@ -151,8 +151,7 @@ int PS4_SYSV_ABI sceAppContentAddcontMount(u32 service_label,
 
     // Hitting this shouldn't be possible, as it would mean the entitlement was loaded,
     // but the folder it was loaded from doesn't exist.
-    UNREACHABLE_MSG("Folder for loaded entitlement label {} doesn't exist.",
-                    entitlement_label->data);
+      return ORBIS_APP_CONTENT_ERROR_NOT_FOUND;
 }
 
 int PS4_SYSV_ABI sceAppContentAddcontShrink() {
@@ -493,7 +492,7 @@ static void LoadLicenses(std::string_view service_id, u32 service_label) {
         auto& info = addcont_info[addcont_count++];
         info.service_label = service_label;
         entitlement.first.copy(info.entitlement_label, entitlement.first.length());
-        info.status = OrbisAppContentAddcontDownloadStatus::NoExtraData;
+        info.status = OrbisAppContentAddcontDownloadStatus::Installed;
         std::memcpy(info.key.data, entitlement.second.data, sizeof(info.key.data));
     }
 }
