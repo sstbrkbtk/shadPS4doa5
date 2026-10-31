@@ -72,9 +72,10 @@ int PS4_SYSV_ABI sceAppContentAddcontEnqueueDownloadSp() {
 int PS4_SYSV_ABI sceAppContentAddcontMount(u32 service_label,
                                            const OrbisNpUnifiedEntitlementLabel* entitlement_label,
                                            OrbisAppContentMountPoint* mount_point) {
-    LOG_INFO(Lib_AppContent, "[DLCPROBE] AddcontMount: service_label={} entitlement='{}'",
+    LOG_INFO(Lib_AppContent, "[DLCPROBE] AddcontMount: service_label={} entitlement='{}' caller={}",
              service_label,
-             entitlement_label ? std::string(entitlement_label->data, strnlen(entitlement_label->data, ORBIS_NP_UNIFIED_ENTITLEMENT_LABEL_SIZE - 1)) : std::string("<null>"));
+             entitlement_label ? std::string(entitlement_label->data, strnlen(entitlement_label->data, ORBIS_NP_UNIFIED_ENTITLEMENT_LABEL_SIZE - 1)) : std::string("<null>"),
+             __builtin_return_address(0));
 
     if (!is_initialized) {
         return ORBIS_APP_CONTENT_ERROR_NOT_INITIALIZED;
@@ -290,8 +291,8 @@ int PS4_SYSV_ABI sceAppContentGetAddcontInfo(u32 service_label,
 int PS4_SYSV_ABI sceAppContentGetAddcontInfoList(u32 service_label,
                                                  OrbisAppContentAddcontInfo* list, u32 list_num,
                                                  u32* hit_num) {
-    LOG_INFO(Lib_AppContent, "[DLCPROBE] GetAddcontInfoList: service_label={} list_num={}",
-             service_label, list_num);
+    LOG_INFO(Lib_AppContent, "[DLCPROBE] GetAddcontInfoList: service_label={} list_num={} caller={}",
+             service_label, list_num, __builtin_return_address(0));
 
     if (!is_initialized) {
         return ORBIS_APP_CONTENT_ERROR_NOT_INITIALIZED;
