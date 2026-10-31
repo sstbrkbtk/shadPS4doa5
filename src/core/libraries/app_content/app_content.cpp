@@ -72,7 +72,9 @@ int PS4_SYSV_ABI sceAppContentAddcontEnqueueDownloadSp() {
 int PS4_SYSV_ABI sceAppContentAddcontMount(u32 service_label,
                                            const OrbisNpUnifiedEntitlementLabel* entitlement_label,
                                            OrbisAppContentMountPoint* mount_point) {
-    LOG_INFO(Lib_AppContent, "called");
+    LOG_INFO(Lib_AppContent, "[DLCPROBE] AddcontMount: service_label={} entitlement='{}'",
+             service_label,
+             entitlement_label ? std::string(entitlement_label->data, strnlen(entitlement_label->data, ORBIS_NP_UNIFIED_ENTITLEMENT_LABEL_SIZE - 1)) : std::string("<null>"));
 
     if (!is_initialized) {
         return ORBIS_APP_CONTENT_ERROR_NOT_INITIALIZED;
@@ -149,9 +151,11 @@ int PS4_SYSV_ABI sceAppContentAddcontMount(u32 service_label,
         }
     }
 
-    // Hitting this shouldn't be possible, as it would mean the entitlement was loaded,
-    // but the folder it was loaded from doesn't exist.
-      return ORBIS_APP_CONTENT_ERROR_NOT_FOUND;
+    // License-only entitlements (from a .rif) have no data folder; returning NOT_FOUND here
+    // keeps the run alive (and logged) instead of aborting the emulator.
+    LOG_INFO(Lib_AppContent, "[DLCPROBE] AddcontMount: no data folder for this entitlement (service_label={})",
+             service_label);
+    return ORBIS_APP_CONTENT_ERROR_NOT_FOUND;
 }
 
 int PS4_SYSV_ABI sceAppContentAddcontShrink() {
@@ -253,7 +257,9 @@ int PS4_SYSV_ABI sceAppContentGetAddcontDownloadProgress() {
 int PS4_SYSV_ABI sceAppContentGetAddcontInfo(u32 service_label,
                                              const OrbisNpUnifiedEntitlementLabel* entitlementLabel,
                                              OrbisAppContentAddcontInfo* info) {
-    LOG_INFO(Lib_AppContent, "called");
+    LOG_INFO(Lib_AppContent, "[DLCPROBE] GetAddcontInfo: service_label={} entitlement='{}'",
+             service_label,
+             entitlementLabel ? std::string(entitlementLabel->data, strnlen(entitlementLabel->data, ORBIS_NP_UNIFIED_ENTITLEMENT_LABEL_SIZE - 1)) : std::string("<null>"));
 
     if (!is_initialized) {
         return ORBIS_APP_CONTENT_ERROR_NOT_INITIALIZED;
@@ -284,7 +290,8 @@ int PS4_SYSV_ABI sceAppContentGetAddcontInfo(u32 service_label,
 int PS4_SYSV_ABI sceAppContentGetAddcontInfoList(u32 service_label,
                                                  OrbisAppContentAddcontInfo* list, u32 list_num,
                                                  u32* hit_num) {
-    LOG_INFO(Lib_AppContent, "called");
+    LOG_INFO(Lib_AppContent, "[DLCPROBE] GetAddcontInfoList: service_label={} list_num={}",
+             service_label, list_num);
 
     if (!is_initialized) {
         return ORBIS_APP_CONTENT_ERROR_NOT_INITIALIZED;
@@ -297,6 +304,8 @@ int PS4_SYSV_ABI sceAppContentGetAddcontInfoList(u32 service_label,
     const auto matching_count = static_cast<u32>(std::ranges::count_if(
         std::span(addcont_info.data(), addcont_count),
         [service_label](const auto& info) { return info.service_label == service_label; }));
+    LOG_INFO(Lib_AppContent, "[DLCPROBE] GetAddcontInfoList: service_label={} matching_count={}",
+             service_label, matching_count);
 
     if (list_num == 0 || list == nullptr) {
         if (hit_num == nullptr) {
@@ -328,7 +337,9 @@ int PS4_SYSV_ABI sceAppContentGetAddcontInfoList(u32 service_label,
 int PS4_SYSV_ABI sceAppContentGetEntitlementKey(
     u32 service_label, const OrbisNpUnifiedEntitlementLabel* entitlement_label,
     OrbisAppContentGetEntitlementKey* key) {
-    LOG_INFO(Lib_AppContent, "called");
+    LOG_INFO(Lib_AppContent, "[DLCPROBE] GetEntitlementKey: service_label={} entitlement='{}'",
+             service_label,
+             entitlement_label ? std::string(entitlement_label->data, strnlen(entitlement_label->data, ORBIS_NP_UNIFIED_ENTITLEMENT_LABEL_SIZE - 1)) : std::string("<null>"));
 
     if (!is_initialized) {
         return ORBIS_APP_CONTENT_ERROR_NOT_INITIALIZED;
@@ -349,10 +360,12 @@ int PS4_SYSV_ABI sceAppContentGetEntitlementKey(
             continue;
         }
 
+        LOG_INFO(Lib_AppContent, "[DLCPROBE] GetEntitlementKey: FOUND key for service_label={}", service_label);
         memcpy(key->data, addcont_info[i].key.data, ORBIS_APP_CONTENT_ENTITLEMENT_KEY_SIZE);
         return ORBIS_OK;
     }
 
+    LOG_INFO(Lib_AppContent, "[DLCPROBE] GetEntitlementKey: NO ENTITLEMENT (service_label={})", service_label);
     return ORBIS_APP_CONTENT_ERROR_DRM_NO_ENTITLEMENT;
 }
 
@@ -492,7 +505,7 @@ static void LoadLicenses(std::string_view service_id, u32 service_label) {
         auto& info = addcont_info[addcont_count++];
         info.service_label = service_label;
         entitlement.first.copy(info.entitlement_label, entitlement.first.length());
-        info.status = OrbisAppContentAddcontDownloadStatus::Installed;
+        info.status = OrbisAppContentAddcontDownloadStatus::NoExtraData;
         std::memcpy(info.key.data, entitlement.second.data, sizeof(info.key.data));
     }
 }
