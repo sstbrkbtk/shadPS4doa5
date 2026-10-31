@@ -508,7 +508,14 @@ std::tuple<ImageId, int, int> TextureCache::ResolveOverlap(const ImageInfo& imag
                   merged_image_id.index, static_cast<int>(binding), scheduler.CurrentTick(),
                   scheduler.CurrentTick() - cache_image.tick_accessed_last);
 
-        UNREACHABLE_MSG("Encountered unresolvable image overlap with equal memory address.");
+        // Graceful fallback instead of aborting the emulator: drop the stale cached image
+        // when it is safe to do so and fall back to the merged/new image so rendering can
+        // continue. Without this, titles that alias one guest address across incompatible
+        // image views (e.g. DOA5LR character-select textures) hard-crash here.
+        if (safe_to_delete) {
+            FreeImage(cache_image_id);
+        }
+        return {merged_image_id, -1, -1};
     }
 
     // Right overlap, the image requested is a possible subresource of the image from cache.
