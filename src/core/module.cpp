@@ -118,7 +118,9 @@ void Module::LoadModuleToMemory(u32& max_tls_index) {
     // Reserve memory area for module
     const bool is_executable =
         elf_header.e_type == ET_SCE_EXEC || elf_header.e_type == ET_SCE_DYNEXEC;
-    const u64 load_base = is_executable   ? ExecutableLoadBase
+    // Fixed base for the main executable so guest addresses are stable across runs
+    // (debugging aid; the eboot is relocatable, so any free base works).
+    const u64 load_base = is_executable   ? 0x200000000ULL
                           : IsSystemLib() ? SystemModuleLoadBase
                                           : GameModuleLoadBase;
     void** out_addr = reinterpret_cast<void**>(&base_virtual_addr);
